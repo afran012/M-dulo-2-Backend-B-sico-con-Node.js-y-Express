@@ -12,6 +12,8 @@
   "type": "commonjs",
   "dependencies": {
     "dotenv": "^16.4.7",
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "express-intro": "file:",
+    "helmet": "^8.1.0"
   }
 }
