@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const connectDB = require('./config/db.config');
+const swaggerDocs = require('./config/swagger.config');
 const { apiLimiter, loginLimiter, securityHeaders } = require('./middlewares/security.middleware');
 require('dotenv').config();
 
@@ -12,7 +13,15 @@ const app = express();
 connectDB();
 
 // Middleware de seguridad
-app.use(helmet()); // Configura encabezados HTTP seguros
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "script-src": ["'self'", "'unsafe-inline'"],
+      "img-src": ["'self'", "data:"],
+    },
+  }
+})); // Configura encabezados HTTP seguros con excepciones para Swagger
 app.use(securityHeaders); // Configuraciones de seguridad adicionales
 app.use(cors()); // Configurar CORS
 
@@ -27,6 +36,9 @@ app.use(apiLimiter);
 app.use('/api/auth/login', loginLimiter); // Limitador específico para login
 app.use('/api/auth', require('./routes/auth.routes'));
 app.use('/api/users', require('./routes/user.routes'));
+
+// Inicializar Swagger
+swaggerDocs(app);
 
 // Ruta principal
 app.get('/', (req, res) => res.json({ msg: 'API funcionando correctamente' }));

@@ -7,6 +7,7 @@ API RESTful construida con Express.js que implementa el patrón MVC y autenticac
 - **Arquitectura MVC**: Separación clara de modelos, vistas y controladores
 - **Autenticación JWT**: Implementación segura con JWT
 - **CRUD completo**: Gestión de usuarios con todas las operaciones
+- **Documentación interactiva**: Interfaz Swagger para probar y documentar la API
 - **Seguridad avanzada**:
   - Encabezados HTTP seguros con Helmet
   - Limitación de tasa para prevenir ataques de fuerza bruta
@@ -21,6 +22,7 @@ API RESTful construida con Express.js que implementa el patrón MVC y autenticac
 /express-auth-api
   /config
     - db.config.js        # Configuración de base de datos
+    - swagger.config.js   # Configuración de Swagger
   /controllers
     - auth.controller.js  # Controlador de autenticación
     - user.controller.js  # Controlador de usuarios
@@ -78,6 +80,17 @@ npm run dev
 ```
 npm start
 ```
+
+## Documentación de la API con Swagger
+
+La API incluye documentación interactiva con Swagger UI. Una vez que el servidor esté corriendo:
+
+1. Accede a la documentación en: `http://localhost:5000/api-docs`
+2. Desde allí puedes:
+   - Ver todos los endpoints disponibles
+   - Probar los endpoints directamente desde la interfaz
+   - Ver los esquemas de datos y modelos
+   - Autenticarte usando JWT para probar endpoints protegidos
 
 ## Endpoints de la API
 
