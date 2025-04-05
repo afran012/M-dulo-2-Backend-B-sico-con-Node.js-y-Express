@@ -22,7 +22,7 @@ const swaggerOptions = {
       {
         url: process.env.NODE_ENV === 'production' 
           ? 'https://tu-dominio.com' 
-          : 'http://localhost:5000',
+          : `http://localhost:${process.env.PORT || 5001}`,
         description: process.env.NODE_ENV === 'production' ? 'Servidor de producción' : 'Servidor de desarrollo'
       }
     ],
@@ -73,9 +73,67 @@ const swaggerOptions = {
         Error: {
           type: 'object',
           properties: {
-            msg: {
+            error: {
+              type: 'object',
+              properties: {
+                message: {
+                  type: 'string',
+                  description: 'Mensaje de error'
+                },
+                code: {
+                  type: 'integer',
+                  description: 'Código de estado HTTP'
+                },
+                stack: {
+                  type: 'string',
+                  description: 'Stack trace del error (solo en desarrollo)'
+                }
+              }
+            }
+          }
+        },
+        LoginRequest: {
+          type: 'object',
+          required: ['email', 'password'],
+          properties: {
+            email: {
               type: 'string',
-              description: 'Mensaje de error'
+              format: 'email',
+              example: 'usuario@ejemplo.com'
+            },
+            password: {
+              type: 'string',
+              format: 'password',
+              example: 'password123'
+            }
+          }
+        },
+        RegisterRequest: {
+          type: 'object',
+          required: ['name', 'email', 'password'],
+          properties: {
+            name: {
+              type: 'string',
+              example: 'John Doe'
+            },
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'usuario@ejemplo.com'
+            },
+            password: {
+              type: 'string',
+              format: 'password',
+              example: 'password123'
+            }
+          }
+        },
+        TokenResponse: {
+          type: 'object',
+          properties: {
+            token: {
+              type: 'string',
+              description: 'JWT token'
             }
           }
         }
@@ -91,7 +149,12 @@ const swaggerSpec = swaggerJSDoc(swaggerOptions);
 // Middleware para servir la documentación
 const swaggerDocs = (app) => {
   // Ruta para la interfaz de Swagger
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+    swaggerOptions: {
+      persistAuthorization: true, // Mantener autorización entre recargas
+    },
+    customCss: '.swagger-ui .topbar { display: none }' // Ocultar topbar
+  }));
   
   // Ruta para el JSON de la especificación
   app.get('/api-docs.json', (req, res) => {

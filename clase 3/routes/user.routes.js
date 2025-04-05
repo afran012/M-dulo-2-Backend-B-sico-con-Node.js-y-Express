@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/user.controller');
 const { auth, admin } = require('../middlewares/auth.middleware');
+const { validateId } = require('../middlewares/error.middleware');
+const { validateUserUpdate } = require('../middlewares/validate.middleware');
 
 /**
  * @swagger
@@ -30,8 +32,16 @@ const { auth, admin } = require('../middlewares/auth.middleware');
  *                 $ref: '#/components/schemas/User'
  *       401:
  *         description: No autorizado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       403:
  *         description: Acceso prohibido (no es administrador)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       500:
  *         description: Error del servidor
  */
@@ -59,6 +69,8 @@ router.get('/', auth, admin, userController.getAll);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/User'
+ *       400:
+ *         description: ID no válido
  *       401:
  *         description: No autorizado
  *       404:
@@ -66,7 +78,7 @@ router.get('/', auth, admin, userController.getAll);
  *       500:
  *         description: Error del servidor
  */
-router.get('/:id', auth, userController.getById);
+router.get('/:id', auth, validateId, userController.getById);
 
 /**
  * @swagger
@@ -108,14 +120,18 @@ router.get('/:id', auth, userController.getById);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/User'
+ *       400:
+ *         description: ID no válido o datos de entrada inválidos
  *       401:
  *         description: No autorizado
+ *       403:
+ *         description: Prohibido - No tiene permisos para esta acción
  *       404:
  *         description: Usuario no encontrado
  *       500:
  *         description: Error del servidor
  */
-router.put('/:id', auth, userController.update);
+router.put('/:id', auth, validateId, validateUserUpdate, userController.update);
 
 /**
  * @swagger
@@ -140,16 +156,23 @@ router.put('/:id', auth, userController.update);
  *             schema:
  *               type: object
  *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 msg:
  *                   type: string
- *                   example: "Usuario eliminado"
+ *                   example: "Usuario eliminado correctamente"
+ *       400:
+ *         description: ID no válido
  *       401:
  *         description: No autorizado
+ *       403:
+ *         description: Prohibido - No tiene permisos para esta acción
  *       404:
  *         description: Usuario no encontrado
  *       500:
  *         description: Error del servidor
  */
-router.delete('/:id', auth, userController.delete);
+router.delete('/:id', auth, validateId, userController.delete);
 
 module.exports = router; 

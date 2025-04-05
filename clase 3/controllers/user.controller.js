@@ -1,39 +1,25 @@
-const User = require('../models/user.model');
+// Controlador CRUD para usuarios
+const { HttpError, asyncHandler, validateId } = require('../middlewares/error.middleware');
 
 // Obtener todos los usuarios
-exports.getAll = async (req, res) => {
-  try {
-    const users = await User.find().select('-password');
-    res.json(users);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Error en el servidor');
-  }
-};
+exports.getAll = asyncHandler(async (req, res) => {
+  const users = await global.UserModel.find();
+  res.json(users);
+});
 
 // Obtener usuario por ID
-exports.getById = async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id).select('-password');
-    
-    if (!user) {
-      return res.status(404).json({ msg: 'Usuario no encontrado' });
-    }
-    
-    res.json(user);
-  } catch (err) {
-    console.error(err.message);
-    
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ msg: 'Usuario no encontrado' });
-    }
-    
-    res.status(500).send('Error en el servidor');
+exports.getById = asyncHandler(async (req, res) => {
+  const user = await global.UserModel.findById(req.params.id);
+  
+  if (!user) {
+    throw new HttpError('Usuario no encontrado', 404);
   }
-};
+  
+  res.json(user);
+});
 
 // Actualizar usuario
-exports.update = async (req, res) => {
+exports.update = asyncHandler(async (req, res) => {
   const { name, email, role } = req.body;
   
   // Construir objeto de usuario
@@ -42,61 +28,41 @@ exports.update = async (req, res) => {
   if (email) userFields.email = email;
   if (role) userFields.role = role;
   
-  try {
-    let user = await User.findById(req.params.id);
-    
-    if (!user) {
-      return res.status(404).json({ msg: 'Usuario no encontrado' });
-    }
-    
-    // Verificar que el usuario autenticado sea admin o el propio usuario
-    if (user._id.toString() !== req.user.id && req.user.role !== 'admin') {
-      return res.status(401).json({ msg: 'No autorizado' });
-    }
-    
-    // Actualizar usuario
-    user = await User.findByIdAndUpdate(
-      req.params.id,
-      { $set: userFields },
-      { new: true }
-    ).select('-password');
-    
-    res.json(user);
-  } catch (err) {
-    console.error(err.message);
-    
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ msg: 'Usuario no encontrado' });
-    }
-    
-    res.status(500).send('Error en el servidor');
+  let user = await global.UserModel.findById(req.params.id);
+  
+  if (!user) {
+    throw new HttpError('Usuario no encontrado', 404);
   }
-};
+  
+  // Verificar que el usuario autenticado sea admin o el propio usuario
+  if (user.id.toString() !== req.user.id && req.user.role !== 'admin') {
+    throw new HttpError('No autorizado para realizar esta acción', 403);
+  }
+  
+  // Actualizar usuario
+  user = await global.UserModel.findByIdAndUpdate(
+    req.params.id,
+    userFields,
+    { new: true }
+  );
+  
+  res.json(user);
+});
 
 // Eliminar usuario
-exports.delete = async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id);
-    
-    if (!user) {
-      return res.status(404).json({ msg: 'Usuario no encontrado' });
-    }
-    
-    // Verificar que el usuario autenticado sea admin o el propio usuario
-    if (user._id.toString() !== req.user.id && req.user.role !== 'admin') {
-      return res.status(401).json({ msg: 'No autorizado' });
-    }
-    
-    await User.findByIdAndDelete(req.params.id);
-    
-    res.json({ msg: 'Usuario eliminado' });
-  } catch (err) {
-    console.error(err.message);
-    
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ msg: 'Usuario no encontrado' });
-    }
-    
-    res.status(500).send('Error en el servidor');
+exports.delete = asyncHandler(async (req, res) => {
+  const user = await global.UserModel.findById(req.params.id);
+  
+  if (!user) {
+    throw new HttpError('Usuario no encontrado', 404);
   }
-}; 
+  
+  // Verificar que el usuario autenticado sea admin o el propio usuario
+  if (user.id.toString() !== req.user.id && req.user.role !== 'admin') {
+    throw new HttpError('No autorizado para realizar esta acción', 403);
+  }
+  
+  await global.UserModel.findByIdAndDelete(req.params.id);
+  
+  res.status(200).json({ success: true, msg: 'Usuario eliminado correctamente' });
+}); 

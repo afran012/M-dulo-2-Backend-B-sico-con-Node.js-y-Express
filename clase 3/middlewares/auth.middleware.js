@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const { HttpError } = require('./error.middleware');
 require('dotenv').config();
 
 const auth = (req, res, next) => {
@@ -7,7 +8,7 @@ const auth = (req, res, next) => {
 
   // Verificar si no hay token
   if (!token) {
-    return res.status(401).json({ msg: 'No hay token, autorización denegada' });
+    return next(new HttpError('No hay token, autorización denegada', 401));
   }
 
   try {
@@ -18,15 +19,26 @@ const auth = (req, res, next) => {
     req.user = decoded.user;
     next();
   } catch (err) {
-    res.status(401).json({ msg: 'Token no válido' });
+    if (err.name === 'TokenExpiredError') {
+      return next(new HttpError('El token ha expirado, por favor inicie sesión nuevamente', 401));
+    }
+    if (err.name === 'JsonWebTokenError') {
+      return next(new HttpError('Token inválido', 401));
+    }
+    return next(new HttpError('Error de autenticación', 401));
   }
 };
 
 // Middleware para verificar rol de administrador
 const admin = (req, res, next) => {
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ msg: 'Acceso denegado, se requiere rol de administrador' });
+  if (!req.user) {
+    return next(new HttpError('No autorizado, autenticación requerida', 401));
   }
+  
+  if (req.user.role !== 'admin') {
+    return next(new HttpError('Acceso denegado, se requiere rol de administrador', 403));
+  }
+  
   next();
 };
 

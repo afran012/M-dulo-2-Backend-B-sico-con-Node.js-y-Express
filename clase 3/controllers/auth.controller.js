@@ -1,101 +1,85 @@
-const User = require('../models/user.model');
 const jwt = require('jsonwebtoken');
+const { HttpError, asyncHandler } = require('../middlewares/error.middleware');
 require('dotenv').config();
 
 // Registro de usuario
-exports.register = async (req, res) => {
+exports.register = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
 
-  try {
-    // Verificar si el usuario ya existe
-    let user = await User.findOne({ email });
-    if (user) {
-      return res.status(400).json({ msg: 'El usuario ya existe' });
-    }
-
-    // Crear nuevo usuario
-    user = new User({
-      name,
-      email,
-      password
-    });
-
-    // Guardar usuario en DB
-    await user.save();
-
-    // Crear payload para JWT
-    const payload = {
-      user: {
-        id: user.id,
-        role: user.role
-      }
-    };
-
-    // Generar JWT
-    jwt.sign(
-      payload,
-      process.env.JWT_SECRET,
-      { expiresIn: '1h' },
-      (err, token) => {
-        if (err) throw err;
-        res.json({ token });
-      }
-    );
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Error en el servidor');
+  // Verificar si el usuario ya existe
+  let user = await global.UserModel.findOne({ email });
+  if (user) {
+    throw new HttpError('El usuario ya existe', 400);
   }
-};
+
+  // Crear nuevo usuario
+  user = new global.UserModel(name, email, password);
+
+  // Guardar usuario en DB o JSON
+  await user.save();
+
+  // Crear payload para JWT
+  const payload = {
+    user: {
+      id: user.id,
+      role: user.role
+    }
+  };
+
+  // Generar JWT
+  jwt.sign(
+    payload,
+    process.env.JWT_SECRET,
+    { expiresIn: '1h' },
+    (err, token) => {
+      if (err) throw new HttpError('Error al generar el token', 500);
+      res.json({ token });
+    }
+  );
+});
 
 // Login de usuario
-exports.login = async (req, res) => {
+exports.login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
-  try {
-    // Verificar si el usuario existe
-    let user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ msg: 'Credenciales inválidas' });
-    }
-
-    // Verificar contraseña
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      return res.status(400).json({ msg: 'Credenciales inválidas' });
-    }
-
-    // Crear payload para JWT
-    const payload = {
-      user: {
-        id: user.id,
-        role: user.role
-      }
-    };
-
-    // Generar JWT
-    jwt.sign(
-      payload,
-      process.env.JWT_SECRET,
-      { expiresIn: '1h' },
-      (err, token) => {
-        if (err) throw err;
-        res.json({ token });
-      }
-    );
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Error en el servidor');
+  // Verificar si el usuario existe
+  let user = await global.UserModel.findOne({ email });
+  if (!user) {
+    throw new HttpError('Credenciales inválidas', 401);
   }
-};
+
+  // Verificar contraseña
+  const isMatch = await user.comparePassword(password);
+  if (!isMatch) {
+    throw new HttpError('Credenciales inválidas', 401);
+  }
+
+  // Crear payload para JWT
+  const payload = {
+    user: {
+      id: user.id,
+      role: user.role
+    }
+  };
+
+  // Generar JWT
+  jwt.sign(
+    payload,
+    process.env.JWT_SECRET,
+    { expiresIn: '1h' },
+    (err, token) => {
+      if (err) throw new HttpError('Error al generar el token', 500);
+      res.json({ token });
+    }
+  );
+});
 
 // Obtener usuario autenticado
-exports.getMe = async (req, res) => {
-  try {
-    // Buscar usuario sin incluir la contraseña
-    const user = await User.findById(req.user.id).select('-password');
-    res.json(user);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Error en el servidor');
+exports.getMe = asyncHandler(async (req, res) => {
+  // Buscar usuario sin incluir la contraseña
+  const user = await global.UserModel.findById(req.user.id);
+  if (!user) {
+    throw new HttpError('Usuario no encontrado', 404);
   }
-}; 
+  res.json(user);
+}); 

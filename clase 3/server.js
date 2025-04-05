@@ -1,16 +1,28 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-const connectDB = require('./config/db.config');
+const { connectDB, isUsingJsonStorage } = require('./config/db.config');
 const swaggerDocs = require('./config/swagger.config');
 const { apiLimiter, loginLimiter, securityHeaders } = require('./middlewares/security.middleware');
+const { errorHandler, notFoundHandler } = require('./middlewares/error.middleware');
 require('dotenv').config();
 
 // Inicializar Express
 const app = express();
 
 // Conectar a la base de datos
-connectDB();
+connectDB().then(() => {
+  // Configurar modelo apropiado basado en la conexión
+  if (isUsingJsonStorage()) {
+    // Si no se pudo conectar a MongoDB, usar modelo JSON
+    global.UserModel = require('./models/user.model.json');
+    console.log('Usando almacenamiento JSON local');
+  } else {
+    // Si se conectó a MongoDB, usar modelo Mongoose
+    global.UserModel = require('./models/user.model');
+    console.log('Usando MongoDB como almacenamiento');
+  }
+});
 
 // Middleware de seguridad
 app.use(helmet({
@@ -44,22 +56,13 @@ swaggerDocs(app);
 app.get('/', (req, res) => res.json({ msg: 'API funcionando correctamente' }));
 
 // Manejo de rutas no encontradas
-app.use((req, res) => {
-  res.status(404).json({ msg: 'Recurso no encontrado' });
-});
+app.use(notFoundHandler);
 
 // Manejo de errores global
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ 
-    msg: process.env.NODE_ENV === 'production' 
-      ? 'Error en el servidor' 
-      : err.message 
-  });
-});
+app.use(errorHandler);
 
 // Definir puerto
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Iniciar servidor
 app.listen(PORT, () => console.log(`Servidor iniciado en el puerto ${PORT}`));
